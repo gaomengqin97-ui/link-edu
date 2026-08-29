@@ -1,0 +1,125 @@
+临客 LINK · 项目交接说明
+========================
+
+一、项目简介
+-----------
+AI 微格教学训练平台（师范生 / 指导教师）
+- 首页：开场视频 + 品牌展示 + 登录页（苹果风玻璃质感）
+- 工作台：训练数据总览、继续训练、AI 摘要、快捷入口
+- 课程中心 / 教学训练 / AI 评课 / 成长档案 / 资源库：可演示闭环
+- 点击特效：全站 ClickSpark；内页锐角 + 局部特效
+
+二、技术栈
+---------
+前端：Vue 3 + Vite + Pinia + Naive UI + GSAP
+      + motion-v / vue-echarts / @number-flow/vue / @vueuse/core / wavesurfer.js
+后端：Flask + SQLAlchemy + JWT
+数据库：MySQL 8（PyMySQL）
+
+三、目录结构
+-----------
+LINK/
+├── frontend/          前端源码
+│   ├── public/assets/ 图片与视频素材
+│   └── src/           页面与组件
+│       ├── layouts/   登录后壳层（侧栏可跳转）
+│       ├── views/     首页、工作台、课程、训练、评课、成长、资源
+│       └── components/fx/  Aurora / Spotlight / Magnet / SplitTitle
+├── backend/           后端源码
+│   ├── sql/           MySQL 建表脚本
+│   ├── services/      dashboard / training / growth
+│   ├── app.py         Flask 入口
+│   ├── models.py      数据模型
+│   ├── routes.py      API 路由
+│   └── seed.py        演示数据
+├── docker-compose.yml MySQL 容器（可选）
+├── 启动前端.bat
+├── 启动后端.bat
+└── 交接说明.txt       本文件
+
+四、环境要求
+-----------
+- Node.js 18+
+- Python 3.10+
+- MySQL 8（本机安装 或 Docker）
+
+五、快速启动
+-----------
+1. 启动 MySQL，创建数据库 link（或使用 docker compose up -d）
+2. 双击「启动后端.bat」（首次会自动装依赖、初始化数据库）
+3. 双击「启动前端.bat」（首次会自动 npm install）
+4. 浏览器打开 http://127.0.0.1:5188
+
+演示账号：demo / link123
+
+演示路径：登录 → 工作台 → 课程中心选课 → 教学训练 8 分钟 → 结束生成 AI 评课 → 成长档案看走势
+
+六、手动启动（命令行）
+--------------------
+【后端】
+  cd backend
+  python -m venv .venv
+  .venv\Scripts\activate
+  pip install -r requirements.txt
+  copy .env.example .env
+  按本机 MySQL 密码修改 .env 里的 DATABASE_URL
+  python init_db.py
+  python app.py
+
+【前端】
+  cd frontend
+  npm install
+  npm run dev
+
+七、主要 API
+-----------
+POST /api/auth/login                 登录
+POST /api/auth/register              注册
+GET  /api/auth/me                    当前用户（需 JWT）
+GET  /api/dashboard/overview         工作台数据（需 JWT）
+GET  /api/courses                    课程列表（含进度）
+GET  /api/resources                  资源列表
+POST /api/training/sessions          开始训练
+PATCH /api/training/sessions/:id     更新进度
+POST /api/training/sessions/:id/complete  结束并生成评课
+GET  /api/feedbacks                  评课历史
+GET  /api/growth?range=all|7d        成长轨迹
+GET  /api/health                     健康检查
+
+八、已完成 / 待开发
+------------------
+【已完成】
+- 首页双视频（打招呼 → 发丝飘动）
+- 静态品牌 Logo、导航悬停动效
+- 登录页玻璃质感 UI
+- 鼠标点击火花特效
+- Flask + MySQL 后端框架
+- 工作台数据 API 对接
+- 演示数据种子
+- 侧栏六页可跳转（工作台 / 课程 / 训练 / 评课 / 成长 / 资源）
+- 教学训练 8 分钟舞台 + 计时/波形，结束自动出评课
+- AI 评课雷达图 + 成长折线 + 资源库列表
+- 帮助中心右侧抽屉
+
+【待开发建议】
+- 真 LLM 评课（当前为规则打分，便于演示）
+- 第三方登录（Google / Apple）
+- 文件上传（教案、素材）
+- 生产环境部署配置
+
+九、配置说明
+-----------
+backend/.env（从 .env.example 复制，本压缩包不含真实 .env）：
+  DATABASE_URL=mysql+pymysql://root:密码@127.0.0.1:3306/link?charset=utf8mb4
+  JWT_SECRET_KEY=请修改为随机字符串
+
+前端代理已配置：/api → http://127.0.0.1:5000
+
+十、注意事项
+-----------
+- 压缩包内不含 node_modules、.venv、dist、.env，解压后需重新安装依赖
+- 视频素材较大，解压可能需要几分钟
+- MySQL 密码请按本机环境修改 backend/.env
+- 本机 MySQL 若使用 caching_sha2_password，需已安装 cryptography（已写入 requirements.txt）
+
+祝开发顺利！

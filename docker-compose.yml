@@ -1,0 +1,19 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: link-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: link
+      MYSQL_CHARSET: utf8mb4
+    volumes:
+      - link_mysql_data:/var/lib/mysql
+      - ./backend/sql/00_create_database.sql:/docker-entrypoint-initdb.d/01-create-db.sql:ro
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/02-schema.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  link_mysql_data:
