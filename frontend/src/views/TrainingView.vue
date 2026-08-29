@@ -12,70 +12,75 @@
         playsinline
       ></video>
       <video v-show="cameraOn" ref="camRef" class="stage-video" autoplay muted playsinline></video>
-      <div class="scanline" aria-hidden="true"></div>
+      <div class="scanline" :class="{ dim: cameraOn }" aria-hidden="true"></div>
 
       <header class="train-hud">
-        <div>
-          <small>{{ cameraOn ? '镜头监测中' : '演示舞台' }}</small>
-          <strong>{{ courseTitle }}</strong>
-        </div>
-        <div class="hud-meta">
-          <span>{{ modeLabel }}</span>
-          <span>{{ liveScene }}</span>
-          <span>{{ cameraOn ? '摄像头已开' : '未开镜头' }}</span>
-        </div>
+        <GlassSurface class="train-hud__glass">
+          <div>
+            <small>{{ cameraOn ? '镜头监测中' : '演示舞台' }}</small>
+            <strong>{{ courseTitle }}</strong>
+          </div>
+          <div class="hud-meta">
+            <span>{{ modeLabel }}</span>
+            <span>{{ liveHint }}</span>
+            <button type="button" class="hud-cam" @click="toggleCamera">
+              {{ cameraOn ? '关闭镜头' : '打开镜头' }}
+            </button>
+          </div>
+        </GlassSurface>
       </header>
 
-      <div class="monitor-strip" aria-label="训练监测">
-        <article v-for="meter in meters" :key="meter.label">
+      <div v-if="running" class="monitor-strip" aria-label="训练监测">
+        <GlassSurface v-for="meter in meters" :key="meter.label" class="meter-pill">
           <em>{{ meter.label }}</em>
           <b>{{ meter.value }}</b>
-          <i><s :style="{ width: `${meter.percent}%` }"></s></i>
-        </article>
+        </GlassSurface>
       </div>
 
-      <StageWave :active="running" :progress="progress" />
+      <StageWave v-if="running" :active="running" :progress="progress" />
 
-      <div class="train-dock">
-        <div class="timer-block">
-          <p>{{ running ? '剩余' : '时长' }}</p>
-          <div class="timer-digits">
-            <NumberFlow :value="minutes" :format="{ minimumIntegerDigits: 2 }" />
-            <span>:</span>
-            <NumberFlow :value="seconds" :format="{ minimumIntegerDigits: 2 }" />
+      <div v-if="running" class="train-dock train-dock--live">
+        <GlassSurface class="train-live-bar">
+          <div class="timer-block">
+            <p>剩余</p>
+            <div class="timer-digits">
+              <NumberFlow :value="minutes" :format="{ minimumIntegerDigits: 2 }" />
+              <span>:</span>
+              <NumberFlow :value="seconds" :format="{ minimumIntegerDigits: 2 }" />
+            </div>
           </div>
-        </div>
-
-        <div v-if="!running" class="dock-setup">
-          <div class="mode-picks">
-            <button type="button" :class="{ active: mode === 'fragment' }" @click="mode = 'fragment'">片段 8 分钟</button>
-            <button type="button" :class="{ active: mode === 'full' }" @click="mode = 'full'">完整 10 分钟</button>
-          </div>
-          <div v-if="mode === 'fragment'" class="scene-picks">
-            <button
-              v-for="item in scenes"
-              :key="item.id"
-              type="button"
-              :class="{ active: scene === item.id }"
-              @click="scene = item.id"
-            >{{ item.id }}</button>
-          </div>
-          <p v-else class="dock-hint">完整课会按导入 → 提问 → 板书 → 互动自动推进，不必先选环节。</p>
-          <blockquote>{{ prompt }}</blockquote>
-        </div>
-        <blockquote v-else>{{ prompt }}</blockquote>
-
-        <div class="dock-actions">
+          <p class="live-prompt">{{ prompt }}</p>
           <Magnet>
-            <button v-if="!running" class="primary train-cta" type="button" @click="begin">
-              开始{{ mode === 'full' ? ' 10 分钟' : ' 8 分钟' }}
+            <button class="primary train-cta" type="button" :disabled="finishing" @click="finish">
+              {{ finishing ? '正在生成评课' : '结束并生成评课' }}
             </button>
-            <button v-else class="primary train-cta" type="button" @click="finish">结束并生成评课</button>
           </Magnet>
-          <button v-if="!running" type="button" class="ghost-link" @click="toggleCamera">
-            {{ cameraOn ? '关闭镜头' : '打开镜头观察教态' }}
-          </button>
-        </div>
+        </GlassSurface>
+      </div>
+
+      <div v-else class="train-setup">
+        <GlassSurface class="train-setup__card" :radius="32">
+          <p class="train-setup__kicker">开始上台</p>
+          <h2>选阶段练习，或直接上完整课</h2>
+          <SkillPills :items="modePills" v-model="mode" />
+          <SkillPills
+            v-if="mode === 'fragment'"
+            :items="skillPills"
+            :model-value="courseId"
+            @update:model-value="pickSkill"
+          />
+          <p class="dock-hint">{{ setupHint }}</p>
+          <div class="setup-actions">
+            <button type="button" class="ghost-link" @click="toggleCamera">
+              {{ cameraOn ? '关闭镜头' : '打开镜头观察教态' }}
+            </button>
+            <Magnet>
+              <button class="primary train-cta" type="button" @click="begin">
+                开始{{ mode === 'full' ? ' 10 分钟' : ' 8 分钟' }}
+              </button>
+            </Magnet>
+          </div>
+        </GlassSurface>
       </div>
     </section>
   </div>
@@ -86,7 +91,9 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NumberFlow from '@number-flow/vue'
 import { useUserMedia } from '@vueuse/core'
+import GlassSurface from '../components/fx/GlassSurface.vue'
 import Magnet from '../components/fx/Magnet.vue'
+import SkillPills from '../components/fx/SkillPills.vue'
 import StageWave from '../components/fx/StageWave.vue'
 import { completeTraining, fetchCourses, patchTraining, startTraining } from '../services/dashboard'
 import { loadSettings } from '../utils/settings'
@@ -99,6 +106,19 @@ const FULL_PHASES = [
   { id: '板书', until: 0.75 },
   { id: '互动', until: 1 },
 ]
+const SKILL_PROMPTS = {
+  导入: '同学们好。今天我们从生活里的一个问题开始——请先看黑板。',
+  提问: '如果把这个现象反过来，会发生什么？请先想 8 秒，再举手。',
+  板书: '请看左侧结构：目标 → 过程 → 结论。例子写在右侧。',
+  演示: '先告诉学生看什么，再出示材料，最后核对观察结果。',
+  讲解: '先给定义，再举正例和反例，请学生用自己的话复述。',
+  强化: '对学生的回答给出具体反馈，不要只说「很好」。',
+  结束: '回扣目标，请学生一句话总结，再布置能完成的作业。',
+  组织: '给出清晰指令，活动后用 10 秒全班回收。',
+  变化: '重点句放慢，视线扫到后排，写板书时侧身。',
+  互动: '同桌讨论 30 秒。结束后请一组分享，我做 10 秒全班回收。',
+  完整: '10 分钟连续上台：导入、提问、讲解板书、互动、收口。',
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -109,20 +129,28 @@ const mode = ref('fragment')
 const running = ref(false)
 const remain = ref(FRAGMENT)
 const sessionId = ref(null)
-const courseId = ref(Number(route.query.courseId) || 1)
-const courseTitle = ref('课堂导入与提问设计')
+const courseId = ref(Number(route.query.courseId) || 0)
+const courseTitle = ref('导入技能')
+const courses = ref([])
 let tick = null
 let startedAt = 0
+let sessionPromise = null
+const finishing = ref(false)
 
-const scenes = [
-  { id: '导入', line: '同学们好。今天我们从生活里的一个问题开始——请先看黑板。' },
-  { id: '提问', line: '如果把这个现象反过来，会发生什么？请先想 8 秒，再举手。' },
-  { id: '板书', line: '请看左侧结构：目标 → 过程 → 结论。例子写在右侧。' },
-  { id: '互动', line: '同桌讨论 30 秒。结束后请一组分享，我做 10 秒全班回收。' },
+const modePills = [
+  { id: 'fragment', label: '阶段练习 8 分钟' },
+  { id: 'full', label: '完整 10 分钟' },
 ]
 
+const skillCourses = computed(() => courses.value.filter((item) => String(item.stage || '').startsWith('专项')))
+const fullCourses = computed(() => courses.value.filter((item) => String(item.stage || '').startsWith('综合')))
+const skillPills = computed(() => skillCourses.value.map((item) => ({
+  id: item.id,
+  label: shortSkill(item),
+})))
+
 const totalSeconds = computed(() => (mode.value === 'full' ? FULL : FRAGMENT))
-const modeLabel = computed(() => (mode.value === 'full' ? '完整 10 分钟' : '片段练习'))
+const modeLabel = computed(() => (mode.value === 'full' ? '完整 10 分钟' : '阶段练习 8 分钟'))
 const elapsedRatio = computed(() => {
   const spent = totalSeconds.value - remain.value
   return Math.min(1, Math.max(0, spent / totalSeconds.value))
@@ -132,27 +160,28 @@ const liveScene = computed(() => {
   const ratio = elapsedRatio.value
   return FULL_PHASES.find((item) => ratio <= item.until)?.id || '互动'
 })
+const liveHint = computed(() => (mode.value === 'full' ? liveScene.value : shortSkill(currentCourse.value)))
 const prompt = computed(() => {
-  const id = running.value ? liveScene.value : (mode.value === 'full' ? '导入' : scene.value)
-  if (mode.value === 'full' && !running.value) {
-    return '完整课从导入走到互动。镜头打开后，舞台会铺满整个工作区，便于观察教态。'
+  if (mode.value === 'full') {
+    if (!running.value) return SKILL_PROMPTS.完整
+    return SKILL_PROMPTS[liveScene.value] || SKILL_PROMPTS.完整
   }
-  return scenes.find((item) => item.id === id)?.line || ''
+  return SKILL_PROMPTS[scene.value] || SKILL_PROMPTS.导入
+})
+const setupHint = computed(() => {
+  if (mode.value === 'full') return '10 分钟连续上台，开始后不再切换路径。适合综合模拟或教资试讲。'
+  return '点一项技能做对应练习。开始后整屏监测教态，台上不再改走另一条路径。'
 })
 const minutes = computed(() => Math.floor(remain.value / 60))
 const seconds = computed(() => remain.value % 60)
 const progress = computed(() => Math.round(elapsedRatio.value * 100))
 const elapsedMinutes = computed(() => Math.max(1, Math.round((totalSeconds.value - remain.value) / 60)))
-const meters = computed(() => {
-  const ratio = elapsedRatio.value
-  const camera = cameraOn.value ? 86 : 34
-  return [
-    { label: '镜头覆盖', value: cameraOn.value ? '已开' : '演示', percent: camera },
-    { label: '环节进度', value: `${progress.value}%`, percent: progress.value },
-    { label: '等待窗口', value: liveScene.value === '提问' ? '请停 8 秒' : '跟进中', percent: liveScene.value === '提问' ? 72 : 48 + ratio * 30 },
-    { label: '回收提示', value: liveScene.value === '互动' ? '全班回收' : '稍后', percent: liveScene.value === '互动' ? 80 : 28 + ratio * 20 },
-  ]
-})
+const currentCourse = computed(() => courses.value.find((item) => item.id === courseId.value))
+const meters = computed(() => [
+  { label: '镜头', value: cameraOn.value ? '已开' : '演示' },
+  { label: '进度', value: `${progress.value}%` },
+  { label: '提示', value: liveHint.value || '跟进中' },
+])
 
 const { stream, start: startCam, stop: stopCam } = useUserMedia({
   constraints: { video: true, audio: false },
@@ -166,35 +195,79 @@ watch(stream, (value) => {
 
 watch(
   () => route.query.courseId,
-  (value) => {
-    if (value) courseId.value = Number(value) || courseId.value
-  },
+  () => applyCourseFromQuery(),
 )
 
 watch(mode, (value) => {
-  if (!running.value) remain.value = value === 'full' ? FULL : FRAGMENT
+  if (running.value) return
+  remain.value = value === 'full' ? FULL : FRAGMENT
+  if (value === 'full') pickFullCourse()
+  else if (currentCourse.value && String(currentCourse.value.stage || '').startsWith('综合')) {
+    pickSkill(skillCourses.value[0]?.id)
+  }
 })
 
-async function loadCourse() {
+function shortSkill(course) {
+  const stage = String(course?.stage || '')
+  const part = stage.split('·')[1]
+  return (part || course?.title || '技能').trim()
+}
+
+function sceneFromCourse(course) {
+  const hay = `${course?.stage || ''}${course?.title || ''}`
+  if (hay.includes('提问')) return '提问'
+  if (hay.includes('板书') || hay.includes('演示')) return '板书'
+  if (hay.includes('组织') || hay.includes('强化') || hay.includes('结束') || hay.includes('互动')) return '互动'
+  if (hay.includes('综合') || hay.includes('完整') || hay.includes('教资')) return '完整'
+  return '导入'
+}
+
+function applyCourse(course) {
+  if (!course) return
+  courseId.value = course.id
+  courseTitle.value = course.title
+  const full = String(course.stage || '').startsWith('综合')
+  mode.value = full ? 'full' : 'fragment'
+  scene.value = full ? '导入' : sceneFromCourse(course)
+  remain.value = full ? FULL : FRAGMENT
+}
+
+function applyCourseFromQuery() {
+  const id = Number(route.query.courseId)
+  const match = courses.value.find((item) => item.id === id)
+  if (match) applyCourse(match)
+}
+
+function pickSkill(id) {
+  const match = courses.value.find((item) => item.id === Number(id))
+  if (match) applyCourse(match)
+}
+
+function pickFullCourse() {
+  const preferred = fullCourses.value.find((item) => String(item.stage || '').includes('模拟')) || fullCourses.value[0]
+  if (preferred) applyCourse(preferred)
+}
+
+async function loadCourses() {
   try {
-    const items = await fetchCourses()
-    const match = items.find((item) => item.id === courseId.value) || items[0]
-    if (match) {
-      courseId.value = match.id
-      courseTitle.value = match.title
-    }
+    courses.value = await fetchCourses()
   } catch {
-    courseTitle.value = '课堂导入与提问设计'
+    courses.value = [
+      { id: 1, title: '导入技能', stage: '专项01 · 导入' },
+      { id: 10, title: '综合模拟授课（10 分钟）', stage: '综合10 · 模拟授课' },
+    ]
+  }
+  applyCourseFromQuery()
+  if (!currentCourse.value) {
+    const prefs = loadSettings()
+    if (prefs.mode === 'full') pickFullCourse()
+    else pickSkill(skillCourses.value[0]?.id)
   }
 }
 
-loadCourse()
-
 onMounted(async () => {
+  await loadCourses()
   const prefs = loadSettings()
-  mode.value = prefs.mode === 'full' ? 'full' : 'fragment'
-  if (scenes.some((item) => item.id === prefs.scene)) scene.value = prefs.scene
-  remain.value = mode.value === 'full' ? FULL : FRAGMENT
   if (prefs.cameraDefault) {
     try {
       await startCam()
@@ -217,15 +290,19 @@ async function toggleCamera() {
 }
 
 async function begin() {
-  try {
-    const session = await startTraining(courseId.value)
-    sessionId.value = session.id
-  } catch {
-    sessionId.value = null
-  }
+  if (running.value || finishing.value) return
+  if (!courseId.value && mode.value === 'full') pickFullCourse()
+  if (!courseId.value) pickSkill(skillCourses.value[0]?.id)
   running.value = true
   remain.value = totalSeconds.value
   startedAt = Date.now()
+  sessionPromise = startTraining(courseId.value)
+    .then((session) => {
+      sessionId.value = session.id
+    })
+    .catch(() => {
+      sessionId.value = null
+    })
   tick = setInterval(async () => {
     const spent = Math.floor((Date.now() - startedAt) / 1000)
     remain.value = Math.max(0, totalSeconds.value - spent)
@@ -243,25 +320,29 @@ async function begin() {
 }
 
 async function finish() {
-  if (!running.value) return
-  running.value = false
+  if (!running.value || finishing.value) return
+  finishing.value = true
   clearInterval(tick)
   tick = null
   stopCam()
+  if (sessionPromise) await sessionPromise
   const payload = {
     duration_minutes: elapsedMinutes.value,
     scene: mode.value === 'full' ? '完整' : scene.value,
     mode: mode.value,
   }
-  if (!sessionId.value) {
-    router.push('/ai-review')
-    return
-  }
   try {
+    if (!sessionId.value) {
+      router.push('/ai-review')
+      return
+    }
     const { feedback } = await completeTraining(sessionId.value, payload)
     router.push({ path: '/ai-review', query: { sessionId: sessionId.value, feedbackId: feedback?.id } })
   } catch {
     router.push('/ai-review')
+  } finally {
+    running.value = false
+    finishing.value = false
   }
 }
 

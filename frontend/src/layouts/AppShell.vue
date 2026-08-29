@@ -53,6 +53,7 @@
         <router-view v-slot="{ Component }">
           <transition name="page-sweep" mode="out-in">
             <motion.div
+              class="page-slot"
               :key="route.fullPath"
               :initial="{ opacity: 0.2, filter: 'blur(6px)' }"
               :animate="{ opacity: 1, filter: 'blur(0px)' }"
