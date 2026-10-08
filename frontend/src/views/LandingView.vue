@@ -1,7 +1,7 @@
 <template>
   <main ref="landing" class="landing">
     <section ref="hero" class="hero" id="hero">
-      <div class="hero-media" aria-hidden="true">
+      <div ref="heroMedia" class="hero-media" aria-hidden="true">
         <video
           ref="heroGreet"
           class="hero-bg-video hero-bg-greet is-active"
@@ -23,6 +23,14 @@
           preload="auto"
         ></video>
       </div>
+      <LiquidEther
+        :mouse-force="15"
+        :cursor-size="82"
+        :resolution="0.42"
+        :auto-speed="0.32"
+        :auto-intensity="1.35"
+      />
+      <div class="hero-foreground">
       <header class="hero-nav">
         <div class="hero-nav-left">
           <BrandMark />
@@ -34,7 +42,6 @@
               <nav v-if="menuOpen" class="nav-popover" aria-label="首屏导航">
                 <button @click="goHome">首页</button>
                 <button @click="goLogin">登录训练</button>
-                <button @click="goLogin">平台介绍</button>
               </nav>
             </Transition>
           </div>
@@ -97,10 +104,11 @@
       <button class="scroll-cue motion-control" @click="goLogin" aria-label="向下滚动进入登录">
         <span>SCROLL TO LOGIN</span><i></i>
       </button>
+      </div>
     </section>
 
     <section ref="loginSection" class="login" id="login">
-      <div class="login-bg" aria-hidden="true">
+      <div ref="loginBg" class="login-bg" aria-hidden="true">
         <video
           ref="loginVideo"
           class="login-bg-video"
@@ -110,11 +118,11 @@
           muted
           loop
           playsinline
-          preload="metadata"
+          preload="auto"
         ></video>
       </div>
-      <div class="login-haze" aria-hidden="true"></div>
-      <header class="login-nav">
+      <div ref="loginHaze" class="login-haze" aria-hidden="true"></div>
+      <header ref="loginNav" class="login-nav">
         <div class="hero-nav-left">
           <BrandMark />
         </div>
@@ -134,12 +142,13 @@
             <p class="login-desc">
               {{
                 authMode === 'login'
-                  ? '继续你的 AI 微格教学训练，先临课，再上课。'
-                  : '建立属于你的临课训练档案，开启师范生成长路径。'
+                  ? '继续你的教学练习。'
+                  : '创建你的教学成长档案。'
               }}
             </p>
           </div>
 
+          <template v-if="!forgotOpen">
           <div class="roles">
             <button type="button" :class="{ active: role === 'student' }" @click="selectRole('student', $event)">师范生</button>
             <button type="button" :class="{ active: role === 'teacher' }" @click="selectRole('teacher', $event)">指导教师</button>
@@ -165,27 +174,13 @@
           </form>
 
           <div v-if="authMode === 'login'" class="form-row">
-            <n-checkbox v-model:checked="remember">记住我</n-checkbox>
-            <a href="#" @click.prevent>忘记密码？</a>
+            <a href="#" @click.prevent="showForgotPassword">忘记密码？</a>
           </div>
 
           <button class="login-submit motion-control" type="button" :disabled="loading" @click="submit">
             {{ buttonLabel }}
           </button>
 
-          <div class="login-divider" aria-hidden="true"><span>或</span></div>
-
-          <div class="social-row">
-            <button type="button" class="social-btn motion-control" aria-label="使用 Google 登录" @click="socialComingSoon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.6h5.1c-.2 1.2-1.6 3.5-5.1 3.5-3.1 0-5.6-2.6-5.6-5.8S8.9 5.7 12 5.7c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.8 3.3 14.6 2.4 12 2.4 6.9 2.4 2.8 6.5 2.8 11.6S6.9 20.8 12 20.8c6.9 0 8.6-4.8 8.6-7.3 0-.5 0-.9-.1-1.3H12z"/><path fill="#34A853" d="M3.4 7.5l3 2.2c.8-2.5 3-4.3 5.6-4.3 1.8 0 3 .8 3.7 1.4l2.5-2.4C16.8 3.3 14.6 2.4 12 2.4 8.5 2.4 5.5 6.3 4.3 7.5z"/><path fill="#4A90E2" d="M12 20.8c2.4 0 4.4-.8 5.9-2.1l-2.7-2.2c-.8.5-1.8.9-3.2.9-2.5 0-4.6-1.7-5.3-4l-3 2.3C5.5 18.9 8.5 20.8 12 20.8z"/><path fill="#FBBC05" d="M20.5 12.3c0-.5 0-.9-.1-1.3H12v3.6h5.1c-.2 1.2-1.6 3.5-5.1 3.5v0c0 0 0 0 0 0l0 0 0 0v0H12c0 0 0 0 0 0v0c6.9 0 8.6-4.8 8.6-7.3z"/></svg>
-            </button>
-            <button type="button" class="social-btn motion-control" aria-label="使用 Facebook 登录" @click="socialComingSoon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.9 11.8v-8.4H7.9V12h2.2V9.8c0-2.2 1.3-3.4 3.3-3.4.9 0 1.9.2 1.9.2v2.1h-1.1c-1.1 0-1.4.7-1.4 1.4V12h2.4l-.4 2.4h-2v8.4A12 12 0 0 0 24 12z"/></svg>
-            </button>
-            <button type="button" class="social-btn motion-control" aria-label="使用 Apple 登录" @click="socialComingSoon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M16.7 12.6c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 6.9 1.2 9.2.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.8 3-.8 1.4 0 1.8.8 3 .8 1.2 0 2-1.1 2.8-2.2.9-1.3 1.2-2.6 1.2-2.7-.1 0-2.3-.9-2.3-3.5zm-2.2-6.4c.7-.8 1.1-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.7-1.4z"/></svg>
-            </button>
-          </div>
 
           <p class="register">
             {{ authMode === 'login' ? '还没有账号？' : '已经有账号了？' }}
@@ -193,6 +188,28 @@
           </p>
           <p v-if="success" class="success" role="status">{{ success }}</p>
           <p v-if="error" class="error" role="alert">{{ error }}</p>
+          </template>
+
+          <form v-else class="forgot-panel" @submit.prevent="submitForgotPassword">
+            <div class="forgot-panel-head">
+              <button type="button" class="forgot-back" @click="closeForgotPassword">返回登录</button>
+              <h2>找回密码</h2>
+              <p>填写注册时使用的手机号或学号，我们会为你安排密码重置。</p>
+            </div>
+            <label class="login-field">
+              <span>手机号 / 学号</span>
+              <input
+                v-model="forgotAccount"
+                type="text"
+                autocomplete="username"
+                placeholder="请输入手机号或学号"
+                autofocus
+              />
+            </label>
+            <button class="login-submit motion-control" type="submit">提交找回申请</button>
+            <p v-if="error" class="error" role="alert">{{ error }}</p>
+            <p v-if="forgotMessage" class="success" role="status">{{ forgotMessage }}</p>
+          </form>
           </div>
         </div>
       </div>
@@ -207,26 +224,34 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import BrandMark from '../components/BrandMark.vue'
 import DepthText from '../components/DepthText.vue'
+import LiquidEther from '../components/fx/LiquidEther.vue'
 import { useAuthStore } from '../stores/auth'
+import { authErrorMessage, validateAuthForm } from '../utils/authValidation'
 
 gsap.registerPlugin(ScrollTrigger)
 const router = useRouter()
 const auth = useAuthStore()
 const landing = ref(null)
 const hero = ref(null)
+const heroMedia = ref(null)
 const loginSection = ref(null)
 const loginCard = ref(null)
 const loginVideo = ref(null)
+const loginBg = ref(null)
+const loginHaze = ref(null)
+const loginNav = ref(null)
 const heroGreet = ref(null)
 const heroHair = ref(null)
 const menuOpen = ref(false)
 const authMode = ref('login')
 const role = ref('student')
 const name = ref('')
-const account = ref('demo')
-const password = ref('link123')
+const account = ref('')
+const password = ref('')
 const confirmPassword = ref('')
-const remember = ref(true)
+const forgotOpen = ref(false)
+const forgotAccount = ref('')
+const forgotMessage = ref('')
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
@@ -235,8 +260,12 @@ let loginObserver
 let onHeroGreetEnded = null
 let hairKeepAlive = null
 let greetWatchTimer = 0
+let heroCycleTimer = 0
+let landingScrollHandler = null
+let scrollTween = null
 const HERO_GREET_RATE = 0.9
 const HERO_HAIR_RATE = 0.48
+const HERO_HAIR_HOLD = 5000
 
 function prepHeroVideo(video, rate) {
   if (!video) return
@@ -292,10 +321,18 @@ function clearGreetWatch() {
   }
 }
 
+function clearHeroCycleTimer() {
+  if (heroCycleTimer) {
+    window.clearTimeout(heroCycleTimer)
+    heroCycleTimer = 0
+  }
+}
+
 function startHeroHairLoop() {
   const greet = heroGreet.value
   const hair = heroHair.value
   clearGreetWatch()
+  clearHeroCycleTimer()
   if (!hair) return
   prepHeroVideo(hair, HERO_HAIR_RATE)
   if (greet) {
@@ -306,6 +343,10 @@ function startHeroHairLoop() {
   hair.loop = true
   try { hair.currentTime = 0 } catch {}
   void playWithRetry(hair)
+  heroCycleTimer = window.setTimeout(() => {
+    heroCycleTimer = 0
+    void startHeroSequence()
+  }, HERO_HAIR_HOLD)
 }
 
 async function startHeroSequence() {
@@ -314,6 +355,7 @@ async function startHeroSequence() {
   if (!greet || !hair) return
 
   clearGreetWatch()
+  clearHeroCycleTimer()
   prepHeroVideo(greet, HERO_GREET_RATE)
   prepHeroVideo(hair, HERO_HAIR_RATE)
 
@@ -371,11 +413,41 @@ const buttonLabel = computed(() =>
       : '创建并登录'
 )
 
-const scrollTo = (target) => target.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+function scrollTo(target) {
+  const scroller = landing.value
+  const section = target.value
+  if (!scroller || !section) return
+  const top = section.offsetTop
+  const movingToLogin = section === loginSection.value
+  scrollTween?.kill()
+  scroller.classList.remove('is-programmatic-scroll')
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    scroller.scrollTo({ top, behavior: 'auto' })
+    return
+  }
+  scroller.classList.add('is-programmatic-scroll')
+  scrollTween = gsap.to(scroller, {
+    scrollTop: top,
+    duration: 1.05,
+    ease: 'power3.inOut',
+    overwrite: true,
+    onComplete: () => {
+      scroller.classList.remove('is-programmatic-scroll')
+      scrollTween = null
+      if (movingToLogin) playLoginVideo()
+      else loginVideo.value?.pause()
+    },
+    onInterrupt: () => {
+      scroller.classList.remove('is-programmatic-scroll')
+      scrollTween = null
+      landingScrollHandler?.()
+    },
+  })
+}
 const goLogin = () => {
   menuOpen.value = false
+  playLoginVideo()
   scrollTo(loginSection)
-  nextTick(() => playLoginVideo())
 }
 const goHome = () => {
   menuOpen.value = false
@@ -401,9 +473,31 @@ function switchMode(event) {
   nextTick(() => ScrollTrigger.refresh())
 }
 
-function socialComingSoon() {
+function showForgotPassword() {
   error.value = ''
-  success.value = '第三方登录即将开放，请先使用账号密码登录。'
+  success.value = ''
+  forgotAccount.value = account.value.trim()
+  forgotMessage.value = ''
+  forgotOpen.value = true
+  nextTick(() => ScrollTrigger.refresh())
+}
+
+function closeForgotPassword() {
+  forgotOpen.value = false
+  forgotMessage.value = ''
+  error.value = ''
+  nextTick(() => ScrollTrigger.refresh())
+}
+
+function submitForgotPassword() {
+  const value = forgotAccount.value.trim()
+  if (!value) {
+    forgotMessage.value = ''
+    error.value = '请先填写手机号或学号。'
+    return
+  }
+  error.value = ''
+  forgotMessage.value = '申请已记录，请联系管理员完成密码重置。'
 }
 
 function playLoginVideo() {
@@ -417,6 +511,10 @@ function playLoginVideo() {
 }
 
 onMounted(async () => {
+  if (auth.sessionNotice) {
+    error.value = auth.sessionNotice
+    auth.sessionNotice = ''
+  }
   await nextTick()
   if (!landing.value) return
   try {
@@ -430,20 +528,21 @@ onMounted(async () => {
       loginObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) playLoginVideo()
-          else loginVideo.value?.pause()
+          else if (!landing.value?.classList.contains('is-programmatic-scroll')) loginVideo.value?.pause()
         })
-      }, { threshold: 0.12 })
+      }, { threshold: [0, 0.01, 0.12] })
       loginObserver.observe(loginSection.value)
       let scrollAt = 0
-      const onLandingScroll = () => {
+      landingScrollHandler = () => {
         const now = performance.now()
         if (now - scrollAt < 120) return
         scrollAt = now
+        if (landing.value?.classList.contains('is-programmatic-scroll')) return
         const rect = loginSection.value?.getBoundingClientRect()
-        if (rect && rect.top < window.innerHeight * 0.75) playLoginVideo()
+        if (rect && rect.top < window.innerHeight * 0.95) playLoginVideo()
         else loginVideo.value?.pause()
       }
-      landing.value.addEventListener('scroll', onLandingScroll, { passive: true })
+      landing.value.addEventListener('scroll', landingScrollHandler, { passive: true })
     }
 
     void startHeroSequence()
@@ -466,11 +565,17 @@ onMounted(async () => {
     hairKeepAlive = keepHairAlive
 
     media = gsap.matchMedia()
-    media.add({ desktop: '(min-width: 901px)', reduceMotion: '(prefers-reduced-motion: reduce)' }, ({ conditions }) => {
+    media.add({
+      all: 'all',
+      mobile: '(max-width: 620px)',
+      reduceMotion: '(prefers-reduced-motion: reduce)',
+    }, ({ conditions }) => {
       const scope = landing.value
       if (!scope) return () => {}
 
       if (!conditions.reduceMotion) {
+        const heroExitScale = conditions.mobile ? 0.98 : 0.965
+        const cardTravel = conditions.mobile ? 24 : 44
         const intro = gsap.timeline({ defaults: { ease: 'power2.out' } })
         const nav = scope.querySelector('.hero-nav')
         const left = scope.querySelector('.hero-copy-left')
@@ -480,17 +585,41 @@ onMounted(async () => {
         if (left) intro.from(left, { autoAlpha: 0, x: -24, duration: 0.45 }, '-=.18')
         if (right) intro.from(right, { autoAlpha: 0, x: 24, duration: 0.45 }, '-=.35')
         if (cue) intro.from(cue, { autoAlpha: 0, y: 8, duration: 0.3 }, '-=.2')
-        const scrollConfig = { scroller: landing.value }
-        gsap.to(scope.querySelectorAll('.hero-copy'), {
-          autoAlpha: 0, y: -20, ease: 'none',
-          scrollTrigger: { ...scrollConfig, trigger: hero.value, start: '60% top', end: '95% top', scrub: 1 }
+        const transition = gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            scroller: landing.value,
+            trigger: loginSection.value,
+            start: 'top 96%',
+            end: 'top 4%',
+            scrub: 0.35,
+          },
         })
-        if (loginCard.value) {
-          gsap.from(loginCard.value, {
-            autoAlpha: 0, y: 28, duration: 0.55, ease: 'power2.out',
-            scrollTrigger: { ...scrollConfig, trigger: loginSection.value, start: 'top 70%', toggleActions: 'play none none reverse' }
-          })
-        }
+        transition
+          .fromTo(scope.querySelector('.hero-foreground'),
+            { autoAlpha: 1, scale: 1, yPercent: 0 },
+            { autoAlpha: 0, scale: heroExitScale, yPercent: conditions.mobile ? -1 : -2, duration: 0.78 },
+            0)
+          .fromTo(heroMedia.value,
+            { autoAlpha: 1, scale: 1 },
+            { autoAlpha: 0.5, scale: 1.025, duration: 0.9 },
+            0)
+          .fromTo(loginBg.value,
+            { autoAlpha: 0.22, scale: 1.035 },
+            { autoAlpha: 1, scale: 1, duration: 1 },
+            0)
+          .fromTo(loginHaze.value,
+            { autoAlpha: 0 },
+            { autoAlpha: 1, duration: 0.72 },
+            0.12)
+          .fromTo(loginNav.value,
+            { autoAlpha: 0, y: 16 },
+            { autoAlpha: 1, y: 0, duration: 0.45 },
+            0.42)
+          .fromTo(loginCard.value,
+            { autoAlpha: 0, scale: conditions.mobile ? 0.97 : 0.94, y: cardTravel },
+            { autoAlpha: 1, scale: 1, y: 0, duration: 0.62, ease: 'power2.out' },
+            0.34)
       }
 
       return () => {}
@@ -503,7 +632,11 @@ onMounted(async () => {
 onUnmounted(() => {
   loginObserver?.disconnect()
   loginVideo.value?.pause()
+  scrollTween?.kill()
+  landing.value?.classList.remove('is-programmatic-scroll')
+  if (landingScrollHandler) landing.value?.removeEventListener('scroll', landingScrollHandler)
   clearGreetWatch()
+  clearHeroCycleTimer()
   const greet = heroGreet.value
   const hair = heroHair.value
   if (greet && onHeroGreetEnded) greet.removeEventListener('ended', onHeroGreetEnded)
@@ -519,25 +652,102 @@ onUnmounted(() => {
 })
 
 async function submit(event) {
+  if (loading.value) return
   feedback(event?.currentTarget)
-  loading.value = true
   error.value = ''
   success.value = ''
+  const formError = validateAuthForm({
+    mode: authMode.value,
+    name: name.value,
+    account: account.value,
+    password: password.value,
+    confirmPassword: confirmPassword.value,
+  })
+  if (formError) {
+    error.value = formError
+    return
+  }
+
+  loading.value = true
+  const isRegister = authMode.value === 'register'
   try {
-    if (!account.value.trim() || !password.value) throw new Error('请完整填写账号和密码')
-    if (authMode.value === 'register') {
-      if (!name.value.trim()) throw new Error('请输入姓名')
-      if (password.value.length < 6) throw new Error('密码至少需要 6 位')
-      if (password.value !== confirmPassword.value) throw new Error('两次输入的密码不一致')
+    if (isRegister) {
       await auth.register({ name:name.value.trim(), account:account.value.trim(), password:password.value, role:role.value })
-      success.value = '账号创建成功，正在进入工作台…'
     }
-    await auth.login({ account: account.value, password: password.value, role: role.value })
+    await auth.login({ account: account.value.trim(), password: password.value, role: role.value })
+    success.value = isRegister ? '账号创建成功，正在进入工作台…' : ''
     router.push('/dashboard')
   } catch (e) {
-    error.value = e.response?.data?.message || e.message || '操作失败，请稍后重试'
+    error.value = authErrorMessage(e)
   } finally {
     loading.value = false
   }
 }
+
 </script>
+
+<style scoped>
+.hero-foreground {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform-origin: center;
+}
+
+.forgot-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.forgot-panel-head {
+  position: relative;
+  text-align: center;
+  padding-top: 8px;
+}
+
+.forgot-panel-head h2 {
+  margin: 10px 0 8px;
+  font-size: 30px;
+}
+
+.forgot-panel-head p {
+  margin: 0 auto;
+  max-width: 30ch;
+  color: #c7c1cc;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.forgot-back {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: #ffad62;
+  font-size: 13px;
+}
+
+.forgot-back:hover {
+  color: #ffd0a3;
+}
+
+.forgot-panel .login-submit {
+  margin-top: 2px;
+}
+
+:deep(.liquid-ether) {
+  -webkit-mask-image: linear-gradient(180deg, #000 0 70%, rgba(0, 0, 0, .55) 86%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0 70%, rgba(0, 0, 0, .55) 86%, transparent 100%);
+}
+
+/* GSAP owns the card transform; a CSS transition would delay every frame. */
+.login-card {
+  transition: max-height .42s cubic-bezier(.16, 1, .3, 1), padding .3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card { transition: none; }
+}
+</style>
